@@ -149,14 +149,13 @@ func (p *pool) goRoutine(r Routine, nonblocking bool) error {
 
 	var c *coroutine
 	for c = p.popIdle(); nil == c; c = p.popIdle() {
-		if uint32(atomic.AddInt64(&p.count, 1)) > uint32(p.Capacity()) {
-			atomic.AddInt64(&p.count, -1)
+		if count := atomic.LoadInt64(&p.count); int32(count) >= p.Capacity() {
 			if nonblocking {
 				return ErrPoolFull
 			}
 
 			runtime.Gosched()
-		} else {
+		} else if atomic.CompareAndSwapInt64(&p.count, count, count+1) {
 			c = p.cache.Get().(*coroutine)
 			p.wg.Add(1)
 			go c.run()
@@ -240,8 +239,8 @@ func (p *pool) pushIdle(c *coroutine) {
 	c.active = time.Now()
 	for {
 		// Get the first idle coroutine.
-		head, cleaning := p.idleHead()
-		if cleaning {
+		head, clean := p.idleHead()
+		if clean {
 			// If the coroutine pool is in the cleaning state, spin until the state is recovered.
 			// Because the cleaning is very fast, spin is a better method
 			runtime.Gosched()
@@ -250,7 +249,9 @@ func (p *pool) pushIdle(c *coroutine) {
 
 		// p.idles->c.next->head
 		if c.storeNext(head); p.casIdleHead(head, unsafe.Pointer(c)) {
-			atomic.AddInt64(&p.count, int64(-1)<<32)
+			if c != cleaning {
+				atomic.AddInt64(&p.count, int64(-1)<<32)
+			}
 			break
 		}
 	}
