@@ -13,7 +13,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/jinde-zgm/gopool"
+	"github.com/jindezgm/gopool"
 )
 
 func main() {
