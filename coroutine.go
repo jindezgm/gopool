@@ -22,8 +22,10 @@ type coroutine struct {
 
 // run is coroutine run routine.
 func (c *coroutine) run() {
-	// Coroutine is exist.
+	// Notify pool that coroutine has exit.
 	defer c.pool.wg.Done()
+	// Put the coroutine back into cache, don't create coroutine again next time.
+	defer c.pool.cache.Put(c)
 
 	// Wait for routine.
 	for r := range c.rc {

@@ -141,7 +141,7 @@ func (p *pool) GoNonblock(r Routine) error {
 	return p.goRoutine(r, true)
 }
 
-// goContext go routine with specific context.
+// goRoutine go routine with specific context.
 func (p *pool) goRoutine(r Routine, nonblocking bool) error {
 	if !p.state.is(stateRunning) {
 		return ErrPoolClosed
@@ -207,7 +207,7 @@ func (p *pool) close() {
 
 // clean timeout coroutines.
 func (p *pool) clean(now time.Time) {
-	// set a special coroutine ot the queue header indicate that the pool is in a cleaning state
+	// set a special coroutine to the queue header indicate that the pool is in a cleaning state
 	p.pushIdle(cleaning)
 
 	for from, c := cleaning, cleaning.next; nil != c; from, c = c, c.next {
